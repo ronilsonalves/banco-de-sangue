@@ -7,5 +7,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class IdadeMediaPorTipoSanguineoDto {
     private String tipoSanguineo;
-    private double idadeMedia;
+    private int idadeMedia;
 }

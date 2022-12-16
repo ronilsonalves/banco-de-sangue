@@ -1,12 +1,8 @@
 package com.ronilsonalves.bancodesangue.api.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ronilsonalves.bancodesangue.api.client.JsonLoaderClient;
 import com.ronilsonalves.bancodesangue.api.service.DonorService;
-import com.ronilsonalves.bancodesangue.data.dto.CountEstadoDto;
-import com.ronilsonalves.bancodesangue.data.dto.IMCMedioPorFaixaEtariaDto;
-import com.ronilsonalves.bancodesangue.data.dto.IdadeMediaPorTipoSanguineoDto;
-import com.ronilsonalves.bancodesangue.data.dto.PercentilObesidadeDto;
+import com.ronilsonalves.bancodesangue.data.dto.*;
 import com.ronilsonalves.bancodesangue.data.enums.Estado;
 import com.ronilsonalves.bancodesangue.data.enums.TipoSanguineo;
 import com.ronilsonalves.bancodesangue.data.model.Donor;
@@ -20,10 +16,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static java.lang.Float.parseFloat;
-import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Integer.parseInt;
 
 @Service
@@ -31,6 +27,8 @@ public class DonorServiceImpl implements DonorService {
 
     private final DonorRepository repository;
     private final JsonLoaderClient client;
+
+    private AtomicInteger count = new AtomicInteger(0);
 
     public DonorServiceImpl(DonorRepository repository, JsonLoaderClient client) {
         this.repository = repository;
@@ -68,9 +66,9 @@ public class DonorServiceImpl implements DonorService {
     }
 
     /**
-     * Retorna uma lista de doadores, sem filtros. Vazia, em caso de não houver doadores cadastrados.
+     * Retorna uma lista de doadores, sem filtros. Vazia, em casos que não houver doadores cadastrados.
      *
-     * @return
+     * @return List<Donor>
      */
     @Override
     public List<Donor> listAll() {
@@ -151,7 +149,6 @@ public class DonorServiceImpl implements DonorService {
                 imcMedioFaixa = 0f;
             }
 
-            //TODO: Tratar a exibição do ICM médio para exibir apenas 2 casas decimais.
             String faixaEtaria = LocalDate.now().getYear()-LocalDate.parse(faixas.get(index),formatter).getYear() + " " +
                     "ano(s) - " + (LocalDate.now().getYear()-LocalDate.parse(faixas.get(index + 1),formatter).getYear()) +" ano(s)";
             imcMedioPorFaixaList.add(new IMCMedioPorFaixaEtariaDto(faixaEtaria, imcMedioFaixa));
@@ -204,7 +201,6 @@ public class DonorServiceImpl implements DonorService {
         List<String> tiposSanguineos = Arrays.stream(TipoSanguineo.values()).map(Enum::toString).collect(Collectors.toList());
         tiposSanguineos.forEach(tipoSanguineo -> {
             int idadeMedia = 0;
-            System.out.println(tipoSanguineo);
             List<Donor> donors = repository.findAllByTipoSanguineo(tipoSanguineo);
             if (donors.size() != 0) {
                 idadeMedia = donors.stream().mapToInt(Donor::getIdade).average().isPresent() ? (int) donors.stream().mapToInt(Donor::getIdade).average().getAsDouble() : 0;
@@ -212,6 +208,22 @@ public class DonorServiceImpl implements DonorService {
             idadeMediaPorTipoSanguineoDtoList.add(new IdadeMediaPorTipoSanguineoDto(tipoSanguineo, idadeMedia));
         });
         return idadeMediaPorTipoSanguineoDtoList;
+    }
+
+    /**
+     * Retorna a quantidade de doadores compatíveis por tipo sanguíneo receptor que estão aptos a doar sangue.
+     *
+     * @return List<CountByTipoSanguineoDto>
+     */
+    public List<?> countPossiveisDoadores() {
+        List<CountPossivelDoadorReceptorDto> possivelDoadorReceptorDtoList = new ArrayList<>();
+        List<String> tiposSanguineos = Arrays.stream(TipoSanguineo.values()).map(Enum::toString).collect(Collectors.toList());
+
+        tiposSanguineos.forEach(tipoSanguineoReceptor -> {
+            counterPossiveisDoadore(tipoSanguineoReceptor);
+            possivelDoadorReceptorDtoList.add(new CountPossivelDoadorReceptorDto(tipoSanguineoReceptor, count.get()));
+        });
+        return possivelDoadorReceptorDtoList;
     }
 
     //Auxiliar para o método byFaixaEtaria()
@@ -259,5 +271,58 @@ public class DonorServiceImpl implements DonorService {
 //        faixas.add(LocalDate.now().minusYears(91));
 //        faixas.add(LocalDate.now().minusYears(100));
         return faixas;
+    }
+
+    //Auxiliar para o método CountPossiveisDoadores()
+    private void counterPossiveisDoadore(String tipoSanguineoReceptor) {
+        int countAux = 0;
+        switch (tipoSanguineoReceptor) {
+            case "A+":
+                count.set(repository.countByTipoSanguineo("A+") + repository.countByTipoSanguineo("A-") +
+                        repository.countByTipoSanguineo("O+") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "A-":
+                count.set(repository.countByTipoSanguineo("A-") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "B+":
+                count.set(repository.countByTipoSanguineo("B+") + repository.countByTipoSanguineo("B-") +
+                        repository.countByTipoSanguineo("O+") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "B-":
+                count.set(repository.countByTipoSanguineo("B-") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "AB+":
+                count.set(repository.countByTipoSanguineo("A+") + repository.countByTipoSanguineo("A-") +
+                        repository.countByTipoSanguineo("B+") + repository.countByTipoSanguineo("B-") +
+                        repository.countByTipoSanguineo("AB+") + repository.countByTipoSanguineo("AB-") +
+                        repository.countByTipoSanguineo("O+") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "AB-":
+                count.set(repository.countByTipoSanguineo("A-") + repository.countByTipoSanguineo("B-") +
+                        repository.countByTipoSanguineo("AB-") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "O+":
+                count.set(repository.countByTipoSanguineo("O+") + repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+            case "O-":
+                count.set(repository.countByTipoSanguineo("O-"));
+                countAux = (int) repository.findAllByTipoSanguineo(tipoSanguineoReceptor).stream().filter(Donor::canDonate).count();
+                count.set(count.get() - countAux);
+                break;
+        }
     }
 }

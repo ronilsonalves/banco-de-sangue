@@ -11,7 +11,9 @@ import java.util.List;
 public interface DonorRepository extends JpaRepository<Donor, String> {
 
     int countByEstado(String estado);
+
     int countByTipoSanguineo(String tipoSanguineo);
+
     List<Donor> findAllByDataNascimentoBetween(LocalDate dataInicial, LocalDate dataFinal);
 
     List<Donor> findAllByTipoSanguineo(String tipoSanguineo);

@@ -14,9 +14,7 @@ public class CandidatoController {
 
     @PostMapping("/load-json")
     public ResponseEntity<?> loadJsonFile() {
-        //service.loadJsonFile();
         return ResponseEntity.ok().body(service.loadJsonFile());
-        //return ResponseEntity.ok().body("Carregou o arquivo");
     }
 
     @GetMapping("")
@@ -24,23 +22,28 @@ public class CandidatoController {
         return ResponseEntity.ok().body(service.listAll());
     }
 
-    @GetMapping("/por-estado")
+    @GetMapping("/data/estado")
     public ResponseEntity<?> countByEstado() {
         return ResponseEntity.ok().body(service.countByState());
     }
 
-    @GetMapping("/imc-medio-faixa-etaria")
+    @GetMapping("/data/imc-medio-faixa-etaria")
     public ResponseEntity<?> imcMedioFaixaEtaria() {
         return ResponseEntity.ok().body(service.byFaixaEtaria());
     }
 
-    @GetMapping("/obesidade-sexo")
+    @GetMapping("/data/obesidade-sexo")
     public ResponseEntity<?> percentilObesidade() {
         return ResponseEntity.ok().body(service.percentilBySexo());
     }
 
-    @GetMapping("/idade-media-tipo-sanguineo")
+    @GetMapping("/data/idade-media")
     public ResponseEntity<?> idadeMediaTipoSanguineo() {
         return ResponseEntity.ok().body(service.idadeMediaPorTipoSanguineo());
+    }
+
+    @GetMapping("/data/aptos")
+    public ResponseEntity<?> aptosDoacao() {
+        return ResponseEntity.ok().body(service.countPossiveisDoadores());
     }
 }
