@@ -1,3 +1,3 @@
 spring:
   profiles:
-    active: dev
+    active: example # dev, example, production. At application-example.yaml fill the database connection data.

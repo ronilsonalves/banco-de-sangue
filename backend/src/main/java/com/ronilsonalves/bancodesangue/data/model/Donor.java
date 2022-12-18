@@ -22,7 +22,7 @@ public class Donor{
 
     @Id
     @GeneratedValue
-    private UUID id;
+    private Long id;
 
     @NotBlank(message = "Preencha o nome do(a) doador(a)")
     private String nome;
@@ -90,6 +90,10 @@ public class Donor{
 
     public int getIdade() {
         return LocalDate.now().minusYears(dataNascimento.getYear()).getYear();
+    }
+
+    public float getImc() {
+        return peso / (altura * altura);
     }
 
     public boolean canDonate() {

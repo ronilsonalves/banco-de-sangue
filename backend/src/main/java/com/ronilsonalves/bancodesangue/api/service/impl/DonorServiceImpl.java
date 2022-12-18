@@ -76,17 +76,26 @@ public class DonorServiceImpl implements DonorService {
     }
 
     /**
+     * Retorna uma lista dos últimos 6 candidatos cadastrados, sem filtros. Vazia, em casos que não houver doadores cadastrados.
+     *
+     * @return List<Donor>
+     */
+    public List<Donor> listLastSix() {
+        return repository.findAll().stream().skip(Math.max(0, repository.findAll().size() - 6)).collect(Collectors.toList());
+    }
+
+    /**
      * Busca um doador por Id.
      *
      * @return Donor
      */
     @Override
-    public Donor get(UUID id) {
-        if (repository.findById(String.valueOf(id)).isPresent()) {
-            return repository.findById(String.valueOf(id)).get();
+    public Donor get(Long id) {
+        if (repository.findById(id).isEmpty()) {
+            return null;
         }
         //TODO: Criar uma exception para quando não encontrar o candidato.
-        return null;
+        return repository.findById(id).get();
     }
 
     /**
@@ -99,12 +108,45 @@ public class DonorServiceImpl implements DonorService {
         return repository.save(entity);
     }
 
+    public Donor update(Long id, Donor entity) {
+        Donor donor = repository.findById(id).get();
+        BeanUtils.copyProperties(entity, donor, "id");
+        return repository.save(donor);
+    }
+
     /**
      * Deleta um Doador.
      */
     @Override
-    public void delete(UUID id) {
-        repository.deleteById(String.valueOf(id));
+    public void delete(Long id) {
+        repository.deleteById(id);
+    }
+
+    /**
+     * Retorna uma lista de doadores, filtrados por tipo sanguíneo. Vazia, em casos que não houver doadores cadastrados.
+     *
+     * @return List<Donor>
+     */
+    public List<Donor> findByTipoSanguineo(String tipoSanguineo) {
+        return repository.findAllByTipoSanguineo(tipoSanguineo);
+    }
+
+    /**
+     * Retorna uma lista de doadores, filtrados por estado. Vazia, em casos que não houver doadores cadastrados.
+     *
+     * @return List<Donor>
+     */
+    public List<Donor> findByEstado(String estado) {
+        return repository.findAllByEstado(estado);
+    }
+
+    /**
+     * Retorna uma lista de doadores, filtrados por estado, tipo sanguíneo e sexo. Vazia, em casos que não houver doadores cadastrados.
+     *
+     * @return List<Donor>
+     */
+    public List<Donor> findAllByEstadoAndTipoSanguineoAndSexo(String estado, String tipoSanguineo, String sexo) {
+        return repository.findAllByEstadoAndTipoSanguineoAndSexo(estado, tipoSanguineo, sexo);
     }
 
     /**

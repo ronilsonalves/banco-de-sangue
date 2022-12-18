@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.UUID;
 
 public interface DonorService {
-    Donor get(UUID id);
+    Donor get(Long id);
 
     Donor save(Donor entity);
 
     List<?> listAll();
 
-    void delete(UUID id);
+    void delete(Long id);
 
     List<?> countByState();
 
